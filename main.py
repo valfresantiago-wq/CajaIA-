@@ -12,9 +12,6 @@ from app.config import (
     SECRET_KEY,
 )
 
-from database.migraciones import ejecutar_migraciones
-from database.auxiliar import conectar_aux
-
 # Routers existentes
 from app.routers import (
     auth,
@@ -55,14 +52,6 @@ STATIC_DIR = ROOT / "app" / "static"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
-    # Migraciones del sistema heredado
-    ejecutar_migraciones()
-
-    # Base auxiliar existente
-    conexion_aux = conectar_aux()
-    conexion_aux.close()
-
-    # Tablas SQLAlchemy web
     Base.metadata.create_all(
         bind=engine
     )
