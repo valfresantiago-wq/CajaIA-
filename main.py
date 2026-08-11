@@ -136,6 +136,10 @@ app.include_router(
 )
 
 app.include_router(
+    indicadores.router
+)
+
+app.include_router(
     catalogo.router
 )
 
