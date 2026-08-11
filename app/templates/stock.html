@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}Stock | Libreya{% endblock %}
+
+{% block page_title %}Stock{% endblock %}
+
+{% block page_subtitle %}
+Consulta de productos e inventario
+{% endblock %}
+
+{% block content %}
+
+<section class="panel">
+
+    <div class="toolbar">
+
+        <div class="search-box">
+
+            <input
+                type="search"
+                id="buscarProducto"
+                placeholder="Buscar por nombre, código o marca..."
+            >
+
+        </div>
+
+        <button
+            type="button"
+            class="button-primary"
+            id="actualizarStock"
+        >
+            Actualizar
+        </button>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Código</th>
+                    <th>Producto</th>
+                    <th>Marca</th>
+                    <th>Categoría</th>
+                    <th>Stock</th>
+                    <th>Mínimo</th>
+                    <th>Venta</th>
+                    <th>Estado</th>
+                </tr>
+
+            </thead>
+
+            <tbody id="tablaStock">
+
+                <tr>
+                    <td colspan="8">
+                        Cargando productos...
+                    </td>
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script>
+
+function dinero(valor) {
+
+    return new Intl.NumberFormat(
+        "es-AR",
+        {
+            style: "currency",
+            currency: "ARS"
+        }
+    ).format(valor || 0);
+
+}
+
+
+async function cargarStock() {
+
+    const buscar =
+        document.getElementById(
+            "buscarProducto"
+        ).value.trim();
+
+    let url = "/api/productos";
+
+    if (buscar) {
+
+        url +=
+            "?buscar="
+            +
+            encodeURIComponent(buscar);
+
+    }
+
+
+    const respuesta =
+        await fetch(url);
+
+    const productos =
+        await respuesta.json();
+
+    const tabla =
+        document.getElementById(
+            "tablaStock"
+        );
+
+    tabla.innerHTML = "";
+
+
+    if (!productos.length) {
+
+        tabla.innerHTML = `
+            <tr>
+                <td colspan="8">
+                    No se encontraron productos.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+
+    productos.forEach(producto => {
+
+        const bajo =
+            Number(producto.stock)
+            <=
+            Number(producto.stock_minimo);
+
+        const fila =
+            document.createElement("tr");
+
+        fila.innerHTML = `
+            <td>${producto.codigo || "-"}</td>
+
+            <td>
+                <strong>
+                    ${producto.nombre}
+                </strong>
+            </td>
+
+            <td>${producto.marca || "-"}</td>
+
+            <td>
+                ${producto.categoria || "-"}
+            </td>
+
+            <td>${producto.stock}</td>
+
+            <td>${producto.stock_minimo}</td>
+
+            <td>
+                ${dinero(producto.precio_venta)}
+            </td>
+
+            <td>
+                ${
+                    bajo
+                    ?
+                    '<span class="badge-danger">Bajo stock</span>'
+                    :
+                    '<span class="badge-success">Disponible</span>'
+                }
+            </td>
+        `;
+
+        tabla.appendChild(fila);
+
+    });
+
+}
+
+
+document.getElementById(
+    "actualizarStock"
+).addEventListener(
+    "click",
+    cargarStock
+);
+
+
+document.getElementById(
+    "buscarProducto"
+).addEventListener(
+    "input",
+    cargarStock
+);
+
+
+cargarStock();
+
+</script>
+
+{% endblock %}
