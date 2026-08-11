@@ -12,7 +12,6 @@ from app.config import (
     SECRET_KEY,
 )
 
-# Routers existentes
 from app.routers import (
     auth,
     dashboard,
@@ -20,6 +19,7 @@ from app.routers import (
     productos,
     rentabilidad,
     compras,
+    indicadores,
     catalogo,
     administracion,
 )
