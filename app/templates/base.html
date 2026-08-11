@@ -248,12 +248,50 @@
             <!-- =========================
                  CONTENIDO DE CADA PÁGINA
             ========================== -->
-            <main class="content">
+                        <!-- =========================
+                 FOOTER
+            ========================== -->
+            <footer class="app-footer">
 
-                {% block content %}
-                {% endblock %}
+                <span>
+                    Libreya Gestión Web
+                </span>
 
-            </main>
+                <span>
+                    v0.7 Web
+                </span>
+
+            </footer>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================
+         OVERLAY MOBILE
+    ========================== -->
+    <div
+        class="sidebar-overlay"
+        id="sidebarOverlay"
+    ></div>
+
+
+    <!-- =========================
+         JAVASCRIPT GLOBAL
+    ========================== -->
+    <script src="/static/js/app.js"></script>
+
+
+    <!-- =========================
+         JAVASCRIPT ESPECÍFICO
+         DE CADA PÁGINA
+    ========================== -->
+    {% block scripts %}
+    {% endblock %}
+
+</body>
+</html>
 
 
            
