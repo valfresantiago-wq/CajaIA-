@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}Rentabilidad | Libreya{% endblock %}
+
+{% block page_title %}Rentabilidad{% endblock %}
+
+{% block page_subtitle %}
+Ganancias históricas del negocio
+{% endblock %}
+
+{% block content %}
+
+<section class="panel">
+
+    <div class="period-buttons">
+
+        <button
+            type="button"
+            data-periodo="hoy"
+            class="period-button"
+        >
+            Hoy
+        </button>
+
+        <button
+            type="button"
+            data-periodo="ayer"
+            class="period-button"
+        >
+            Ayer
+        </button>
+
+        <button
+            type="button"
+            data-periodo="semana"
+            class="period-button"
+        >
+            Esta semana
+        </button>
+
+        <button
+            type="button"
+            data-periodo="mes"
+            class="period-button"
+        >
+            Este mes
+        </button>
+
+    </div>
+
+
+    <div class="date-range">
+
+        <div class="form-group">
+
+            <label for="fechaDesde">
+                Desde
+            </label>
+
+            <input
+                type="date"
+                id="fechaDesde"
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="fechaHasta">
+                Hasta
+            </label>
+
+            <input
+                type="date"
+                id="fechaHasta"
+            >
+
+        </div>
+
+
+        <button
+            type="button"
+            id="consultarFechas"
+            class="button-primary"
+        >
+            Consultar
+        </button>
+
+    </div>
+
+</section>
+
+
+<section class="metrics-grid">
+
+    <article class="metric-card">
+
+        <span class="metric-label">
+            Facturación
+        </span>
+
+        <strong
+            id="rentVentas"
+            class="metric-value"
+        >
+            $0
+        </strong>
+
+    </article>
+
+
+    <article class="metric-card">
+
+        <span class="metric-label">
+            Costo histórico
+        </span>
+
+        <strong
+            id="rentCostos"
+            class="metric-value"
+        >
+            $0
+        </strong>
+
+    </article>
+
+
+    <article class="metric-card">
+
+        <span class="metric-label">
+            Ganancia bruta
+        </span>
+
+        <strong
+            id="rentGanancia"
+            class="metric-value"
+        >
+            $0
+        </strong>
+
+    </article>
+
+
+    <article class="metric-card">
+
+        <span class="metric-label">
+            Margen
+        </span>
+
+        <strong
+            id="rentMargen"
+            class="metric-value"
+        >
+            0 %
+        </strong>
+
+    </article>
+
+</section>
+
+
+<section class="panel">
+
+    <div class="panel-header">
+
+        <div>
+
+            <h2>Período consultado</h2>
+
+            <p id="periodoConsultado">
+                -
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <div class="info-callout">
+
+        Los costos utilizados son los costos
+        históricos congelados al momento de cada
+        venta. Los aumentos posteriores no modifican
+        las ganancias ya registradas.
+
+    </div>
+
+</section>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script>
+
+function dinero(valor) {
+
+    return new Intl.NumberFormat(
+        "es-AR",
+        {
+            style: "currency",
+            currency: "ARS"
+        }
+    ).format(valor || 0);
+
+}
+
+
+async function cargarRentabilidad(url) {
+
+    const respuesta =
+        await fetch(url);
+
+    const datos =
+        await respuesta.json();
+
+
+    document.getElementById(
+        "rentVentas"
+    ).textContent =
+        dinero(datos.ventas);
+
+
+    document.getElementById(
+        "rentCostos"
+    ).textContent =
+        dinero(datos.costos);
+
+
+    document.getElementById(
+        "rentGanancia"
+    ).textContent =
+        dinero(datos.ganancia);
+
+
+    document.getElementById(
+        "rentMargen"
+    ).textContent =
+        Number(
+            datos.margen || 0
+        ).toFixed(2)
+        +
+        " %";
+
+
+    const desde =
+        new Date(
+            datos.desde
+        ).toLocaleDateString(
+            "es-AR"
+        );
+
+    const hasta =
+        new Date(
+            datos.hasta
+        ).toLocaleDateString(
+            "es-AR"
+        );
+
+
+    document.getElementById(
+        "periodoConsultado"
+    ).textContent =
+        `${desde} al ${hasta}`;
+
+}
+
+
+document
+    .querySelectorAll(
+        "[data-periodo]"
+    )
+    .forEach(
+        boton => {
+
+            boton.addEventListener(
+                "click",
+                () => {
+
+                    cargarRentabilidad(
+                        "/api/rentabilidad?periodo="
+                        +
+                        boton.dataset.periodo
+                    );
+
+                }
+            );
+
+        }
+    );
+
+
+document.getElementById(
+    "consultarFechas"
+).addEventListener(
+    "click",
+    () => {
+
+        const desde =
+            document.getElementById(
+                "fechaDesde"
+            ).value;
+
+        const hasta =
+            document.getElementById(
+                "fechaHasta"
+            ).value;
+
+
+        if (!desde) {
+
+            alert(
+                "Seleccioná una fecha inicial."
+            );
+
+            return;
+
+        }
+
+
+        cargarRentabilidad(
+            "/api/rentabilidad?desde="
+            +
+            encodeURIComponent(desde)
+            +
+            "&hasta="
+            +
+            encodeURIComponent(
+                hasta || desde
+            )
+        );
+
+    }
+);
+
+
+cargarRentabilidad(
+    "/api/rentabilidad?periodo=hoy"
+);
+
+</script>
+
+{% endblock %}
