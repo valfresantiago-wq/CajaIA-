@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio | Libreya{% endblock %}
+
+{% block page_title %}Panel principal{% endblock %}
+
+{% block page_subtitle %}
+Resumen general del negocio
+{% endblock %}
+
+{% block content %}
+
+<section class="metrics-grid">
+
+    <article class="metric-card">
+        <span class="metric-label">Ganancia de ayer</span>
+        <strong
+            class="metric-value"
+            id="gananciaAyer"
+        >
+            $0
+        </strong>
+    </article>
+
+    <article class="metric-card">
+        <span class="metric-label">
+            Facturación del mes
+        </span>
+
+        <strong
+            class="metric-value"
+            id="facturacionMes"
+        >
+            $0
+        </strong>
+    </article>
+
+    <article class="metric-card">
+        <span class="metric-label">
+            Ganancia del mes
+        </span>
+
+        <strong
+            class="metric-value"
+            id="gananciaMes"
+        >
+            $0
+        </strong>
+    </article>
+
+    <article class="metric-card">
+        <span class="metric-label">
+            Capital a costo
+        </span>
+
+        <strong
+            class="metric-value"
+            id="capitalCosto"
+        >
+            $0
+        </strong>
+    </article>
+
+</section>
+
+
+<section class="dashboard-grid">
+
+    <article class="panel">
+
+        <div class="panel-header">
+            <div>
+                <h2>Productos más vendidos</h2>
+                <p>Mes actual</p>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Unidades</th>
+                        <th>Facturación</th>
+                        <th>Ganancia</th>
+                    </tr>
+                </thead>
+
+                <tbody id="tablaMasVendidos">
+
+                    <tr>
+                        <td colspan="4">
+                            Cargando...
+                        </td>
+                    </tr>
+
+                </tbody>
+            </table>
+
+        </div>
+
+    </article>
+
+
+    <article class="panel">
+
+        <div class="panel-header">
+
+            <div>
+                <h2>Stock crítico</h2>
+                <p>Productos para recomprar</p>
+            </div>
+
+        </div>
+
+        <div
+            class="alert-list"
+            id="stockBajo"
+        >
+            Cargando...
+        </div>
+
+    </article>
+
+</section>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script>
+
+function dinero(valor) {
+
+    return new Intl.NumberFormat(
+        "es-AR",
+        {
+            style: "currency",
+            currency: "ARS",
+            maximumFractionDigits: 2
+        }
+    ).format(valor || 0);
+
+}
+
+
+async function cargarPanel() {
+
+    try {
+
+        const respuesta =
+            await fetch("/api/indicadores");
+
+        const datos =
+            await respuesta.json();
+
+
+        document.getElementById(
+            "gananciaAyer"
+        ).textContent =
+            dinero(datos.ayer.ganancia);
+
+
+        document.getElementById(
+            "facturacionMes"
+        ).textContent =
+            dinero(datos.mes.ventas);
+
+
+        document.getElementById(
+            "gananciaMes"
+        ).textContent =
+            dinero(datos.mes.ganancia);
+
+
+        document.getElementById(
+            "capitalCosto"
+        ).textContent =
+            dinero(
+                datos.resumen.valor_stock_costo
+            );
+
+
+        const tabla =
+            document.getElementById(
+                "tablaMasVendidos"
+            );
+
+        tabla.innerHTML = "";
+
+
+        if (
+            !datos.productos_mas_vendidos
+            ||
+            datos.productos_mas_vendidos.length === 0
+        ) {
+
+            tabla.innerHTML = `
+                <tr>
+                    <td colspan="4">
+                        Todavía no hay ventas.
+                    </td>
+                </tr>
+            `;
+
+        } else {
+
+            datos.productos_mas_vendidos
+                .forEach(producto => {
+
+                    const fila =
+                        document.createElement("tr");
+
+                    fila.innerHTML = `
+                        <td>${producto.producto}</td>
+                        <td>${producto.cantidad}</td>
+                        <td>${dinero(producto.facturacion)}</td>
+                        <td>${dinero(producto.ganancia)}</td>
+                    `;
+
+                    tabla.appendChild(fila);
+
+                });
+
+        }
+
+
+        const stock =
+            document.getElementById(
+                "stockBajo"
+            );
+
+        stock.innerHTML = "";
+
+
+        if (
+            !datos.stock_bajo
+            ||
+            datos.stock_bajo.length === 0
+        ) {
+
+            stock.innerHTML = `
+                <div class="empty-state">
+                    No hay productos con stock bajo.
+                </div>
+            `;
+
+        } else {
+
+            datos.stock_bajo
+                .slice(0, 10)
+                .forEach(producto => {
+
+                    const faltante =
+                        Math.max(
+                            producto.stock_minimo
+                            -
+                            producto.stock,
+                            0
+                        );
+
+                    const item =
+                        document.createElement("div");
+
+                    item.className =
+                        "alert-item";
+
+                    item.innerHTML = `
+                        <div>
+                            <strong>${producto.nombre}</strong>
+                            <small>
+                                Stock:
+                                ${producto.stock}
+                                · Mínimo:
+                                ${producto.stock_minimo}
+                            </small>
+                        </div>
+
+                        <span class="badge-warning">
+                            Comprar ${faltante}
+                        </span>
+                    `;
+
+                    stock.appendChild(item);
+
+                });
+
+        }
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+    }
+
+}
+
+
+cargarPanel();
+
+</script>
+
+{% endblock %}
