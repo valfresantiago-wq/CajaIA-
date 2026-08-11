@@ -1,0 +1,516 @@
+{% extends "base.html" %}
+
+{% block title %}Compras | Libreya{% endblock %}
+
+{% block page_title %}Compras{% endblock %}
+
+{% block page_subtitle %}
+Ingreso de mercadería y actualización de costos
+{% endblock %}
+
+{% block content %}
+
+<div class="sales-layout">
+
+    <section class="panel">
+
+        <h2>Nueva compra</h2>
+
+
+        <div class="form-grid">
+
+            <div class="form-group">
+
+                <label for="proveedorCompra">
+                    ID proveedor
+                </label>
+
+                <input
+                    type="number"
+                    id="proveedorCompra"
+                    min="1"
+                    placeholder="Ej: 1"
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="comprobanteCompra">
+                    Comprobante
+                </label>
+
+                <input
+                    type="text"
+                    id="comprobanteCompra"
+                    placeholder="Factura / remito"
+                >
+
+            </div>
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="observacionesCompra">
+                Observaciones
+            </label>
+
+            <textarea
+                id="observacionesCompra"
+                rows="3"
+            ></textarea>
+
+        </div>
+
+
+        <hr>
+
+
+        <h3>Agregar productos</h3>
+
+        <input
+            type="search"
+            id="buscarCompra"
+            placeholder="Buscar producto..."
+        >
+
+        <div
+            id="resultadosCompra"
+            class="product-results"
+        ></div>
+
+    </section>
+
+
+    <section class="panel">
+
+        <h2>Mercadería a ingresar</h2>
+
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Nuevo costo</th>
+                        <th>Subtotal</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody id="detalleCompra">
+
+                    <tr>
+                        <td colspan="5">
+                            No hay productos.
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <div class="sale-summary">
+
+            <span>Total compra</span>
+
+            <strong id="totalCompra">
+                $0
+            </strong>
+
+        </div>
+
+
+        <button
+            type="button"
+            id="confirmarCompra"
+            class="button-primary button-large"
+        >
+            Registrar ingreso
+        </button>
+
+    </section>
+
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script>
+
+let compraItems = [];
+
+
+function dinero(valor) {
+
+    return new Intl.NumberFormat(
+        "es-AR",
+        {
+            style: "currency",
+            currency: "ARS"
+        }
+    ).format(valor || 0);
+
+}
+
+
+async function buscarCompra() {
+
+    const termino =
+        document.getElementById(
+            "buscarCompra"
+        ).value.trim();
+
+    const contenedor =
+        document.getElementById(
+            "resultadosCompra"
+        );
+
+    if (termino.length < 2) {
+
+        contenedor.innerHTML = "";
+        return;
+
+    }
+
+
+    const respuesta =
+        await fetch(
+            "/api/productos?buscar="
+            +
+            encodeURIComponent(termino)
+        );
+
+    const productos =
+        await respuesta.json();
+
+    contenedor.innerHTML = "";
+
+
+    productos.slice(0, 10)
+        .forEach(producto => {
+
+            const boton =
+                document.createElement("button");
+
+            boton.type = "button";
+            boton.className =
+                "product-result";
+
+            boton.textContent =
+                producto.nombre;
+
+            boton.addEventListener(
+                "click",
+                () => {
+
+                    if (
+                        !compraItems.some(
+                            x =>
+                                x.producto.id
+                                ===
+                                producto.id
+                        )
+                    ) {
+
+                        compraItems.push({
+                            producto,
+                            cantidad: 1,
+                            costo:
+                                Number(
+                                    producto.precio_costo
+                                )
+                        });
+
+                    }
+
+                    renderCompra();
+
+                }
+            );
+
+            contenedor.appendChild(boton);
+
+        });
+
+}
+
+
+function renderCompra() {
+
+    const tabla =
+        document.getElementById(
+            "detalleCompra"
+        );
+
+    tabla.innerHTML = "";
+
+    let total = 0;
+
+
+    if (!compraItems.length) {
+
+        tabla.innerHTML = `
+            <tr>
+                <td colspan="5">
+                    No hay productos.
+                </td>
+            </tr>
+        `;
+
+    }
+
+
+    compraItems.forEach(item => {
+
+        const subtotal =
+            item.cantidad
+            *
+            item.costo;
+
+        total += subtotal;
+
+
+        const fila =
+            document.createElement("tr");
+
+        fila.innerHTML = `
+            <td>
+                ${item.producto.nombre}
+            </td>
+
+            <td>
+                <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value="${item.cantidad}"
+                    class="table-input cantidad"
+                >
+            </td>
+
+            <td>
+                <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value="${item.costo}"
+                    class="table-input costo"
+                >
+            </td>
+
+            <td>
+                ${dinero(subtotal)}
+            </td>
+
+            <td>
+                <button
+                    type="button"
+                    class="button-danger-small eliminar"
+                >
+                    ×
+                </button>
+            </td>
+        `;
+
+
+        fila
+            .querySelector(".cantidad")
+            .addEventListener(
+                "change",
+                event => {
+
+                    item.cantidad =
+                        Number(
+                            event.target.value
+                        );
+
+                    renderCompra();
+
+                }
+            );
+
+
+        fila
+            .querySelector(".costo")
+            .addEventListener(
+                "change",
+                event => {
+
+                    item.costo =
+                        Number(
+                            event.target.value
+                        );
+
+                    renderCompra();
+
+                }
+            );
+
+
+        fila
+            .querySelector(".eliminar")
+            .addEventListener(
+                "click",
+                () => {
+
+                    compraItems =
+                        compraItems.filter(
+                            x =>
+                                x.producto.id
+                                !==
+                                item.producto.id
+                        );
+
+                    renderCompra();
+
+                }
+            );
+
+
+        tabla.appendChild(fila);
+
+    });
+
+
+    document.getElementById(
+        "totalCompra"
+    ).textContent =
+        dinero(total);
+
+}
+
+
+async function registrarCompra() {
+
+    if (!compraItems.length) {
+
+        alert(
+            "Agregá productos a la compra."
+        );
+
+        return;
+
+    }
+
+
+    const proveedor =
+        document.getElementById(
+            "proveedorCompra"
+        ).value;
+
+
+    const datos = {
+
+        proveedor_id:
+            proveedor
+            ?
+            Number(proveedor)
+            :
+            null,
+
+        numero_comprobante:
+            document.getElementById(
+                "comprobanteCompra"
+            ).value,
+
+        observaciones:
+            document.getElementById(
+                "observacionesCompra"
+            ).value,
+
+        usuario: "web",
+
+        items:
+            compraItems.map(
+                item => ({
+
+                    producto_id:
+                        item.producto.id,
+
+                    cantidad:
+                        item.cantidad,
+
+                    costo_unitario:
+                        item.costo
+
+                })
+            )
+
+    };
+
+
+    const respuesta =
+        await fetch(
+            "/api/compras",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body:
+                    JSON.stringify(datos)
+            }
+        );
+
+
+    const resultado =
+        await respuesta.json();
+
+
+    if (!respuesta.ok) {
+
+        alert(
+            resultado.detail
+            ||
+            "No se pudo registrar la compra."
+        );
+
+        return;
+
+    }
+
+
+    alert(
+        "Compra registrada. Stock y costos actualizados."
+    );
+
+    compraItems = [];
+
+    renderCompra();
+
+}
+
+
+document.getElementById(
+    "buscarCompra"
+).addEventListener(
+    "input",
+    buscarCompra
+);
+
+
+document.getElementById(
+    "confirmarCompra"
+).addEventListener(
+    "click",
+    registrarCompra
+);
+
+</script>
+
+{% endblock %}
