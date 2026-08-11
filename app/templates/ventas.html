@@ -1,0 +1,580 @@
+{% extends "base.html" %}
+
+{% block title %}Ventas | Libreya{% endblock %}
+
+{% block page_title %}Ventas{% endblock %}
+
+{% block page_subtitle %}
+Facturación y cobros
+{% endblock %}
+
+{% block content %}
+
+<div class="sales-layout">
+
+    <section class="panel">
+
+        <div class="panel-header">
+
+            <div>
+                <h2>Buscar producto</h2>
+                <p>
+                    Nombre, código o marca
+                </p>
+            </div>
+
+        </div>
+
+
+        <input
+            type="search"
+            id="buscarVenta"
+            placeholder="Ej: Resma Punax..."
+            autocomplete="off"
+        >
+
+
+        <div
+            class="product-results"
+            id="resultadosVenta"
+        ></div>
+
+    </section>
+
+
+    <section class="panel">
+
+        <div class="panel-header">
+
+            <div>
+                <h2>Venta actual</h2>
+                <p>
+                    Productos agregados
+                </p>
+            </div>
+
+        </div>
+
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Cant.</th>
+                        <th>Precio</th>
+                        <th>Subtotal</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody id="carritoVenta">
+
+                    <tr>
+                        <td colspan="5">
+                            No hay productos agregados.
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <div class="sale-summary">
+
+            <span>Total</span>
+
+            <strong id="totalVenta">
+                $0
+            </strong>
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="metodoPago">
+                Medio de pago
+            </label>
+
+            <select id="metodoPago">
+                <option value="Efectivo">
+                    Efectivo
+                </option>
+                <option value="Transferencia">
+                    Transferencia
+                </option>
+                <option value="Debito">
+                    Débito
+                </option>
+                <option value="Credito">
+                    Crédito
+                </option>
+                <option value="Mercado Pago">
+                    Mercado Pago
+                </option>
+            </select>
+
+        </div>
+
+
+        <button
+            type="button"
+            class="button-primary button-large"
+            id="confirmarVenta"
+        >
+            Confirmar venta
+        </button>
+
+    </section>
+
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script>
+
+let carrito = [];
+
+
+function dinero(valor) {
+
+    return new Intl.NumberFormat(
+        "es-AR",
+        {
+            style: "currency",
+            currency: "ARS"
+        }
+    ).format(valor || 0);
+
+}
+
+
+async function buscarProductos() {
+
+    const termino =
+        document.getElementById(
+            "buscarVenta"
+        ).value.trim();
+
+    const contenedor =
+        document.getElementById(
+            "resultadosVenta"
+        );
+
+    if (termino.length < 2) {
+
+        contenedor.innerHTML = "";
+        return;
+
+    }
+
+    const respuesta =
+        await fetch(
+            "/api/productos?buscar="
+            +
+            encodeURIComponent(termino)
+        );
+
+    const productos =
+        await respuesta.json();
+
+    contenedor.innerHTML = "";
+
+
+    productos.slice(0, 10)
+        .forEach(producto => {
+
+            const boton =
+                document.createElement("button");
+
+            boton.type = "button";
+            boton.className =
+                "product-result";
+
+            boton.innerHTML = `
+                <div>
+                    <strong>${producto.nombre}</strong>
+
+                    <small>
+                        ${producto.codigo || ""}
+                        · Stock:
+                        ${producto.stock}
+                    </small>
+                </div>
+
+                <strong>
+                    ${dinero(producto.precio_venta)}
+                </strong>
+            `;
+
+            boton.addEventListener(
+                "click",
+                () => agregarProducto(producto)
+            );
+
+            contenedor.appendChild(boton);
+
+        });
+
+}
+
+
+function agregarProducto(producto) {
+
+    const existente =
+        carrito.find(
+            item =>
+                item.producto.id
+                ===
+                producto.id
+        );
+
+    if (existente) {
+
+        if (
+            existente.cantidad + 1
+            <=
+            Number(producto.stock)
+        ) {
+
+            existente.cantidad += 1;
+
+        }
+
+    } else {
+
+        carrito.push({
+            producto,
+            cantidad: 1
+        });
+
+    }
+
+    renderCarrito();
+
+}
+
+
+function cambiarCantidad(
+    productoId,
+    cambio
+) {
+
+    const item =
+        carrito.find(
+            item =>
+                item.producto.id
+                ===
+                productoId
+        );
+
+    if (!item) return;
+
+
+    const nueva =
+        item.cantidad + cambio;
+
+
+    if (nueva <= 0) {
+
+        carrito =
+            carrito.filter(
+                item =>
+                    item.producto.id
+                    !==
+                    productoId
+            );
+
+    }
+
+    else if (
+        nueva
+        <=
+        Number(item.producto.stock)
+    ) {
+
+        item.cantidad = nueva;
+
+    }
+
+    renderCarrito();
+
+}
+
+
+function renderCarrito() {
+
+    const tabla =
+        document.getElementById(
+            "carritoVenta"
+        );
+
+    tabla.innerHTML = "";
+
+
+    if (!carrito.length) {
+
+        tabla.innerHTML = `
+            <tr>
+                <td colspan="5">
+                    No hay productos agregados.
+                </td>
+            </tr>
+        `;
+
+        document.getElementById(
+            "totalVenta"
+        ).textContent = dinero(0);
+
+        return;
+
+    }
+
+
+    let total = 0;
+
+
+    carrito.forEach(item => {
+
+        const subtotal =
+            Number(
+                item.producto.precio_venta
+            )
+            *
+            item.cantidad;
+
+        total += subtotal;
+
+
+        const fila =
+            document.createElement("tr");
+
+        fila.innerHTML = `
+            <td>
+                ${item.producto.nombre}
+            </td>
+
+            <td>
+                <div class="quantity-control">
+
+                    <button
+                        type="button"
+                        data-action="menos"
+                    >
+                        −
+                    </button>
+
+                    <strong>
+                        ${item.cantidad}
+                    </strong>
+
+                    <button
+                        type="button"
+                        data-action="mas"
+                    >
+                        +
+                    </button>
+
+                </div>
+            </td>
+
+            <td>
+                ${dinero(
+                    item.producto.precio_venta
+                )}
+            </td>
+
+            <td>
+                ${dinero(subtotal)}
+            </td>
+
+            <td>
+                <button
+                    type="button"
+                    class="button-danger-small"
+                    data-action="eliminar"
+                >
+                    ×
+                </button>
+            </td>
+        `;
+
+
+        fila
+            .querySelector(
+                '[data-action="menos"]'
+            )
+            .addEventListener(
+                "click",
+                () =>
+                    cambiarCantidad(
+                        item.producto.id,
+                        -1
+                    )
+            );
+
+
+        fila
+            .querySelector(
+                '[data-action="mas"]'
+            )
+            .addEventListener(
+                "click",
+                () =>
+                    cambiarCantidad(
+                        item.producto.id,
+                        1
+                    )
+            );
+
+
+        fila
+            .querySelector(
+                '[data-action="eliminar"]'
+            )
+            .addEventListener(
+                "click",
+                () => {
+
+                    carrito =
+                        carrito.filter(
+                            x =>
+                                x.producto.id
+                                !==
+                                item.producto.id
+                        );
+
+                    renderCarrito();
+
+                }
+            );
+
+
+        tabla.appendChild(fila);
+
+    });
+
+
+    document.getElementById(
+        "totalVenta"
+    ).textContent =
+        dinero(total);
+
+}
+
+
+async function confirmarVenta() {
+
+    if (!carrito.length) {
+
+        alert(
+            "Agregá al menos un producto."
+        );
+
+        return;
+
+    }
+
+
+    const datos = {
+
+        metodo_pago:
+            document.getElementById(
+                "metodoPago"
+            ).value,
+
+        usuario: "web",
+
+        items:
+            carrito.map(
+                item => ({
+                    producto_id:
+                        item.producto.id,
+
+                    cantidad:
+                        item.cantidad
+                })
+            )
+    };
+
+
+    const respuesta =
+        await fetch(
+            "/api/ventas",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body:
+                    JSON.stringify(datos)
+            }
+        );
+
+
+    const resultado =
+        await respuesta.json();
+
+
+    if (!respuesta.ok) {
+
+        alert(
+            resultado.detail
+            ||
+            "No se pudo registrar la venta."
+        );
+
+        return;
+
+    }
+
+
+    alert(
+        "Venta registrada correctamente."
+    );
+
+    carrito = [];
+
+    renderCarrito();
+
+    document.getElementById(
+        "buscarVenta"
+    ).value = "";
+
+    document.getElementById(
+        "resultadosVenta"
+    ).innerHTML = "";
+
+}
+
+
+document.getElementById(
+    "buscarVenta"
+).addEventListener(
+    "input",
+    buscarProductos
+);
+
+
+document.getElementById(
+    "confirmarVenta"
+).addEventListener(
+    "click",
+    confirmarVenta
+);
+
+</script>
+
+{% endblock %}
