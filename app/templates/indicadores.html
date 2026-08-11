@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block title %}Indicadores | Libreya{% endblock %}
+
+{% block page_title %}Centro de Indicadores{% endblock %}
+
+{% block page_subtitle %}
+Información clave para la toma de decisiones
+{% endblock %}
+
+{% block content %}
+
+<section class="metrics-grid">
+
+    <article class="metric-card">
+
+        <span class="metric-label">
+            Ganancia ayer
+        </span>
+
+        <strong
+            id="indicadorGananciaAyer"
+            class="metric-value"
+        >
+            $0
+        </strong>
+
+    </article>
+
+
+    <article class="metric-card">
+
+        <span class="metric-label">
+            Ganancia del mes
+        </span>
+
+        <strong
+            id="indicadorGananciaMes"
+            class="metric-value"
+        >
+            $0
+        </strong>
+
+    </article>
+
+
+    <article class="metric-card">
+
+        <span class="metric-label">
+            Margen del mes
+        </span>
+
+        <strong
+            id="indicadorMargenMes"
+            class="metric-value"
+        >
+            0 %
+        </strong>
+
+    </article>
+
+
+    <article class="metric-card">
+
+        <span class="metric-label">
+            Valor potencial de venta
+        </span>
+
+        <strong
+            id="indicadorStockVenta"
+            class="metric-value"
+        >
+            $0
+        </strong>
+
+    </article>
+
+</section>
+
+
+<section class="dashboard-grid">
+
+    <article class="panel">
+
+        <h2>Top productos del mes</h2>
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Unidades</th>
+                        <th>Facturación</th>
+                        <th>Ganancia</th>
+                    </tr>
+                </thead>
+
+                <tbody id="indicadorProductos">
+
+                    <tr>
+                        <td colspan="4">
+                            Cargando...
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </article>
+
+
+    <article class="panel">
+
+        <h2>Recomprar</h2>
+
+        <div id="indicadorStockBajo">
+            Cargando...
+        </div>
+
+    </article>
+
+</section>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script>
+
+function dinero(valor) {
+
+    return new Intl.NumberFormat(
+        "es-AR",
+        {
+            style: "currency",
+            currency: "ARS"
+        }
+    ).format(valor || 0);
+
+}
+
+
+async function cargarIndicadores() {
+
+    const respuesta =
+        await fetch(
+            "/api/indicadores"
+        );
+
+    const datos =
+        await respuesta.json();
+
+
+    document.getElementById(
+        "indicadorGananciaAyer"
+    ).textContent =
+        dinero(
+            datos.ayer.ganancia
+        );
+
+
+    document.getElementById(
+        "indicadorGananciaMes"
+    ).textContent =
+        dinero(
+            datos.mes.ganancia
+        );
+
+
+    document.getElementById(
+        "indicadorMargenMes"
+    ).textContent =
+        Number(
+            datos.mes.margen || 0
+        ).toFixed(2)
+        +
+        " %";
+
+
+    document.getElementById(
+        "indicadorStockVenta"
+    ).textContent =
+        dinero(
+            datos.resumen
+                .valor_stock_venta
+        );
+
+
+    const tabla =
+        document.getElementById(
+            "indicadorProductos"
+        );
+
+    tabla.innerHTML = "";
+
+
+    datos.productos_mas_vendidos
+        .forEach(producto => {
+
+            const fila =
+                document.createElement("tr");
+
+            fila.innerHTML = `
+                <td>
+                    ${producto.producto}
+                </td>
+
+                <td>
+                    ${producto.cantidad}
+                </td>
+
+                <td>
+                    ${dinero(
+                        producto.facturacion
+                    )}
+                </td>
+
+                <td>
+                    ${dinero(
+                        producto.ganancia
+                    )}
+                </td>
+            `;
+
+            tabla.appendChild(fila);
+
+        });
+
+
+    const stock =
+        document.getElementById(
+            "indicadorStockBajo"
+        );
+
+    stock.innerHTML = "";
+
+
+    datos.stock_bajo
+        .forEach(producto => {
+
+            const faltante =
+                Math.max(
+                    producto.stock_minimo
+                    -
+                    producto.stock,
+                    0
+                );
+
+
+            const item =
+                document.createElement(
+                    "div"
+                );
+
+            item.className =
+                "alert-item";
+
+            item.innerHTML = `
+                <div>
+
+                    <strong>
+                        ${producto.nombre}
+                    </strong>
+
+                    <small>
+                        ${producto.stock}
+                        disponibles
+                    </small>
+
+                </div>
+
+                <span class="badge-warning">
+                    +${faltante}
+                </span>
+            `;
+
+            stock.appendChild(item);
+
+        });
+
+}
+
+
+cargarIndicadores();
+
+</script>
+
+{% endblock %}
