@@ -1,1 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
 
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="Libreya Gestión - Sistema web de ventas, stock, compras y rentabilidad."
+    >
+
+    <title>
+        {% block title %}
+        Libreya Gestión
+        {% endblock %}
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/style.css"
+    >
+</head>
+
+<body>
+
+    <div class="app-shell">
+
+        <!-- =========================
+             SIDEBAR
+        ========================== -->
+        <aside
+            class="sidebar"
+            id="sidebar"
+        >
+
+            <div class="sidebar-header">
+
+                <div class="brand">
+
+                    <div class="brand-logo">
+                        LY
+                    </div>
+
+                    <div class="brand-text">
+                        <strong>Libreya</strong>
+                        <span>Gestión</span>
+                    </div>
+
+                </div>
+
+                <button
+                    type="button"
+                    class="sidebar-close"
+                    id="sidebarClose"
+                    aria-label="Cerrar menú"
+                >
+                    ×
+                </button>
+
+            </div>
+
+
+            <!-- =========================
+                 NAVEGACIÓN
+            ========================== -->
+            <nav class="sidebar-nav">
+
+                <a
+                    href="/"
+                    class="nav-item"
+                >
+                    <span class="nav-icon">⌂</span>
+                    <span>Inicio</span>
+                </a>
+
+                <a
+                    href="/ventas"
+                    class="nav-item"
+                >
+                    <span class="nav-icon">▣</span>
+                    <span>Ventas</span>
+                </a>
+
+                <a
+                    href="/stock"
+                    class="nav-item"
+                >
+                    <span class="nav-icon">□</span>
+                    <span>Stock</span>
+                </a>
+
+                <a
+                    href="/compras"
+                    class="nav-item"
+                >
+                    <span class="nav-icon">↓</span>
+                    <span>Compras</span>
+                </a>
+
+                <a
+                    href="/rentabilidad"
+                    class="nav-item nav-owner"
+                >
+                    <span class="nav-icon">$</span>
+                    <span>Rentabilidad</span>
+                </a>
+
+                <a
+                    href="/indicadores"
+                    class="nav-item nav-owner"
+                >
+                    <span class="nav-icon">⌁</span>
+                    <span>Indicadores</span>
+                </a>
+
+                <div class="nav-divider"></div>
+
+                <a
+                    href="/api/productos"
+                    class="nav-item"
+                    target="_blank"
+                >
+                    <span class="nav-icon">API</span>
+                    <span>API Productos</span>
+                </a>
+
+            </nav>
+
+
+            <!-- =========================
+                 PARTE INFERIOR
+            ========================== -->
+            <div class="sidebar-footer">
+
+                <div class="system-status">
+
+                    <span class="status-dot"></span>
+
+                    <div>
+                        <strong>Sistema activo</strong>
+                        <small>Libreya Web</small>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </aside>
+
+
+        <!-- =========================
+             CONTENIDO PRINCIPAL
+        ========================== -->
+        <div class="main-area">
+
+
+            <!-- =========================
+                 TOPBAR
+            ========================== -->
+            <header class="topbar">
+
+                <div class="topbar-left">
+
+                    <button
+                        type="button"
+                        class="menu-button"
+                        id="sidebarOpen"
+                        aria-label="Abrir menú"
+                    >
+                        ☰
+                    </button>
+
+                    <div class="page-heading">
+
+                        <h1>
+                            {% block page_title %}
+                            Libreya Gestión
+                            {% endblock %}
+                        </h1>
+
+                        <p>
+                            {% block page_subtitle %}
+                            Sistema de gestión comercial
+                            {% endblock %}
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="topbar-right">
+
+                    <div class="topbar-date">
+                        <span id="currentDate"></span>
+                    </div>
+
+                    <div class="user-box">
+
+                        <div class="user-avatar">
+                            L
+                        </div>
+
+                        <div class="user-info">
+
+                            <strong>
+                                {% if usuario %}
+                                    {{ usuario.nombre }}
+                                {% else %}
+                                    Dueño
+                                {% endif %}
+                            </strong>
+
+                            <span>
+                                {% if usuario %}
+                                    {{ usuario.rol }}
+                                {% else %}
+                                    Administrador
+                                {% endif %}
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </header>
+
+
+            <!-- =========================
+                 ALERTAS
+            ========================== -->
+            <div
+                class="notifications"
+                id="notifications"
+                aria-live="polite"
+            >
+                {% block notifications %}
+                {% endblock %}
+            </div>
+
+
+            <!-- =========================
+                 CONTENIDO DE CADA PÁGINA
+            ========================== -->
+            <main class="content">
+
+                {% block content %}
+                {% endblock %}
+
+            </main>
+
+
+           
